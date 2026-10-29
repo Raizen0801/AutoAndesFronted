@@ -1,59 +1,86 @@
-# AutoandesFrontend
+# AutoAndes Web (SPA Frontend)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.5.
+Frontend SPA empresarial desarrollado en **Angular 22** con componentes Standalone y Bootstrap 5 para el Sistema de Gestión de Órdenes de Servicio del Taller Mecánico **AutoAndes** (Evaluación Práctica Unidad II - UPeU).
 
-## Development server
+## 🚀 Tecnologías Utilizadas
+- **Angular 22.2.x** (Componentes Standalone, Signals, Control Flow moderno, Formularios Reactivos).
+- **TypeScript 6.0.x**
+- **Bootstrap 5.3 & Bootstrap Icons 1.11**
+- **RxJS 7.8**
+- **Arquitectura Limpia**: `core/`, `shared/`, `layout/`, `features/`.
 
-To start a local development server, run:
+---
 
-```bash
-ng serve
-```
+## 👥 Cuentas de Acceso y Matriz de Permisos (Semilla Backend)
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+| Usuario | Contraseña | Rol | Permisos Asignados |
+| :--- | :--- | :--- | :--- |
+| **`admin`** | `Auto2026*` | `ADMIN` | Acceso total a todos los módulos y operaciones. |
+| **`asesor`** | `Auto2026*` | `ASESOR` | Registrar vehículos y órdenes, consultar catálogo de servicios y órdenes de servicio. |
+| **`jefe`** | `Auto2026*` | `JEFE_TALLER` | Mantener catálogo de servicios, anular órdenes del día (RN-05) y ver reporte de ingresos. |
+| **`inactivo`**| `Auto2026*` | `ASESOR` | Cuenta inactiva (Rechazado con 401 por el backend). |
 
-## Code scaffolding
+---
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## 🛠️ Instrucciones de Ejecución
 
-```bash
-ng generate component component-name
-```
+1. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+2. **Iniciar el servidor de desarrollo:**
+   ```bash
+   ng serve
+   # o bien:
+   npm start
+   ```
 
-```bash
-ng generate --help
-```
+3. **Abrir en el navegador:**
+   - La aplicación estará disponible en: [http://localhost:4200](http://localhost:4200)
+   - Conectará automáticamente al backend REST en: `http://localhost:8080/api/v1`
 
-## Building
+---
 
-To build the project run:
+## 🛡️ Características de Seguridad y Arquitectura
 
-```bash
-ng build
-```
+- **Sesión con Expiración en `sessionStorage`:** Guarda token y tiempo de expiración (3600 segundos). Al vencer, cierra sesión automáticamente.
+- **`jwtInterceptor`:** Inyecta la cabecera `Authorization: Bearer <token>` de forma centralizada únicamente en llamadas hacia la API.
+- **`errorInterceptor`:**
+  - Ante un `401 Unauthorized` (excepto login), destruye la sesión y redirige al login guardando el `returnUrl`.
+  - Ante un `403 Forbidden`, no destruye la sesión y redirige a la pantalla `/acceso-denegado`.
+- **Guards Standalone:**
+  - `authGuard`: Protege el layout principal.
+  - `invitadoGuard`: Evita acceder al login si ya existe sesión activa.
+  - `permisoGuard`: Valida en tiempo de navegación los permisos declarados en `data: { permiso: '...' }`.
+- **Directiva `*appSiPermiso`:** Oculta en tiempo real botones y opciones del menú sin recargar la página.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+---
 
-## Running unit tests
+## 📋 Módulos y Reglas de Negocio Implementadas
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+1. **Catálogo de Servicios:**
+   - Formulario reactivo único para registro (`/servicios/nuevo`) y edición (`/servicios/:id/editar`).
+   - Validaciones: `SRV-000`, nombre (3-80 chars), precio (> 0), duración (15-480 min).
+   - Toggle PATCH para activar/desactivar servicios (RN-01).
+   - Manejo de error 409 al intentar eliminar un servicio con órdenes asociadas sin bloquear la pantalla.
 
-```bash
-ng test
-```
+2. **Control de Vehículos:**
+   - Listado con visualización del nombre del cliente (sin exponer entidades anidadas).
+   - Formulario con lista desplegable de clientes obtenida del backend (`GET /clientes`).
+   - Validaciones: Placa `ABC-123`, año entre 1990 y 2027.
+   - Manejo de error 409 en caso de placa duplicada (RN-02).
 
-## Running end-to-end tests
+3. **Registro Cabecera-Detalle de Órdenes de Servicio:**
+   - Formulario reactivo dinámico con `FormArray` para agregar y quitar líneas de detalle (1 a 10 líneas).
+   - Control en tiempo real: impide seleccionar servicios repetidos o inactivos (RN-03).
+   - Cantidades de 1 a 5. Cálculo reactivo de subtotales y total al instante.
+   - En caso de error 409 (ej. kilometraje menor a la última orden según RN-04), la pantalla muestra el mensaje del backend **sin perder las líneas ingresadas**.
 
-For end-to-end (e2e) testing, run:
+4. **Consulta y Anulación de Órdenes:**
+   - Filtros combinables por placa, estado (`REGISTRADA`, `ANULADA`), fecha desde y hasta.
+   - Modal para visualizar el detalle completo de líneas, precios y totales.
+   - Modal de anulación (RN-05): exige motivo de 10 a 200 caracteres.
 
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+5. **Reporte de Ingresos por Servicio:**
+   - Consume la consulta agregada JPQL del backend con filtro de rango de fechas y sumatorias globales.
